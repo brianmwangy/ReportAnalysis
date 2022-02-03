@@ -1,0 +1,1259 @@
+---
+title: "Data_analysis"
+output: html_document
+---
+
+#loading required libraries
+```{r}
+library(tidyverse)
+library(lubridate)
+library(showtext)
+library(extrafont)
+library(ggtext)
+library(ggthemes)
+library(patchwork)
+library(gt)
+library(gtExtras)
+#font_import()
+#loadfonts(device = "win")
+
+
+```
+
+#setting ubuntu theme
+```{r}
+#setting theme
+ubuntu_theme<-function()
+{
+  #setting font
+Font<-"Comic Sans MS"
+
+theme_economist() %+replace%
+  
+  theme(
+    ########grid elements########
+    panel.grid.major = element_blank(),    #strip major gridlines
+    panel.grid.minor = element_blank(),    #strip minor gridlines
+     axis.ticks = element_blank(),          #strip axis ticks
+    axis.line = element_blank(),
+    ######text elements###########
+    plot.title = element_markdown(             #title
+                   family = Font,            #set font family
+                   size = 13,                #set font size
+                   face = 'bold',            #bold typeface
+                   hjust = 0,                #left align
+                   vjust = 2),               #raise slightly
+      
+      plot.subtitle = element_markdown(          #subtitle
+                   family = Font,            #font family
+                   size = 12,hjust = 0),               #font size
+      
+      plot.caption = element_text(           #caption
+                   family = Font,            #font family
+                   size = 8.7,
+                   hjust = 0
+                   ),               #right align
+      
+      axis.title = element_text( family = Font,size = 9),               #font size
+      
+      axis.text = element_text( family = Font,size = 9),               #font size
+    
+      legend.text = element_text( family = Font,size = 9),
+      legend.title = element_text( family = Font,size = 9),
+      legend.position = "right",
+      plot.background = element_rect(fill = "white", color = NA)
+
+    
+    ###########plot#################
+    
+  )
+}
+```
+
+#loading data
+```{r}
+df<-read_csv("./www/report_data.csv")
+```
+
+#exploring data
+```{r}
+head(df)
+```
+#checking for NAs per column
+```{r}
+colSums(is.na(df))
+```
+
+#data wrangling
+```{r}
+df <-df %>% mutate(
+  Team=case_when(Name=="Barasa Murefu"~"Team Delta",
+                 Name=="Kinuthia Brian"~"Team Phi",
+                 Name=="Shikorire Tom"~"Team Phi",
+                 Name=="Anyango Ruth"~"Team Phi",
+                 Name=="Mwangi Brian"~"Team Phi",
+                 Name=="Tanui Cornelius"~"Team Phi",
+                 Name=="Mbutura Alois"~"Team Kappa",
+                 Name=="Kitetu Martin"~"Team Kappa",
+                 Name=="Okode Adams"~"Team Kappa",
+                 Name=="Irungu Joyce"~"Team Chi",
+                 Name=="Odhiambo Elmah"~"Team Chi",
+                 Name=="Samo June"~"Team Chi",
+                 Name=="Cherunya Pauline"~"Team Chi",
+                 Name=="Odero Faith"~"Team Chi",
+                 Name=="Musivo Winnie"~"Team Gamma",
+                 Name=="Gichuhi Ruth"~"Team Gamma",
+                 Name=="Muchiri James"~"Team Gamma",
+                 Name=="Maina Morris"~"Team Gamma",
+                 Name=="Kamau Clara"~"Team Gamma",
+                 Name=="Muthuri Cynthia"~"Team Gamma"
+                 ),
+  Rate=case_when(Name=="Barasa Murefu"~"734",
+                 Name=="Kinuthia Brian"~"490",
+                 Name=="Shikorire Tom"~"415",
+                 Name=="Anyango Ruth"~"282",
+                 Name=="Mwangi Brian"~"282",
+                 Name=="Tanui Cornelius"~"282",
+                 Name=="Mbutura Alois"~"360",
+                 Name=="Kitetu Martin"~"445",
+                 Name=="Okode Adams"~"360",
+                 Name=="Irungu Joyce"~"415",
+                 Name=="Odhiambo Elmah"~"282",
+                 Name=="Samo June"~"445",
+                 Name=="Cherunya Pauline"~"445",
+                 Name=="Odero Faith"~"282",
+                 Name=="Musivo Winnie"~"415",
+                 Name=="Gichuhi Ruth"~"445",
+                 Name=="Muchiri James"~"282",
+                 Name=="Maina Morris"~"282",
+                 Name=="Kamau Clara"~"415",
+                 Name=="Muthuri Cynthia"~"360"
+                 ),
+  Sector=case_when(Project=="Ace Taf" ~"Energy",
+                 Project=="AECF REACT" ~"Energy",
+                 Project=="AECF REACT Somalia"~"Energy",
+                 Project=="AECF Refresh"~"Energy",
+                 Project== "AECF Tanzania" ~"Energy",
+                 Project=="AfR"~"Climate Change",
+                 Project=="AMDA" ~"Energy",
+                 Project=="Burundi MTF" ~"Energy",
+                 Project=="Burundi MTF Expansion" ~"Energy",
+                 Project=="CCA" ~"Energy",
+                 Project=="CDC" ~"Energy",
+                 Project=="CLASP Field Monitoring" ~"Energy",
+                 Project=="CLASP QV"  ~"Energy",
+                 Project=="CLI 1"~"Climate Change",
+                 Project=="CLI 2"~"Climate Change",
+                 Project=="CTCN Urban  Briquette"~"Energy",
+                 Project=="Data Collection for Emission Quantification in Shipping(GIZ)"~"Climate Change",
+                 Project=="EED Admin Qtr 1/21" ~"Admin",
+                 Project=="EED Admin Qtr 2/21" ~"Admin",
+                 Project=="EED Admin Qtr 3/21" ~"Admin",
+                 Project=="EED Admin Qtr 4/21" ~"Admin",
+                 Project=="EED BD Qtr 1/21"  ~"Business Development",
+                 Project=="EED BD Qtr 2/21"  ~"Business Development",
+                 Project=="EED BD Qtr 3/21"  ~"Business Development",
+                 Project=="EED BD Qtr 4/21"  ~"Business Development",
+                 Project=="EED BD Qtr 4/20"  ~"Business Development",
+                 Project=="Energy Access Explorer" ~"Energy",
+                 Project=="EPRA GMG"  ~"Energy",
+                 Project=="Green Finance- FSD MoC"  ~"Climate Change",
+                 Project=="HavGas"   ~"Energy",
+                 Project=="Hygiene Market Analysis" ~"Water",
+                 Project=="IFC Uganda"   ~"Energy",
+                 Project=="IMEP Baseline Survey GMG"   ~"Energy",
+                 Project=="Kaiote Admin Qtr 1/21"  ~"Admin",
+                 Project=="Kaiote Admin Qtr2 /21"  ~"Admin",
+                 Project=="Kaiote Admin Qtr 3/21"  ~"Admin",
+                 Project=="Kaiote Admin Qtr 4/21"  ~"Admin",
+                 Project=="Kaiote BD Qtr 1/21"  ~"Business Development",
+                 Project=="Kaiote BD Qtr 2/21"  ~"Business Development",
+                 Project=="Kaiote BD Qtr 4/21"  ~"Business Development",
+                 Project=="KawiSafi Technical Assistance Facility (TAF)"  ~"Energy",
+                 Project=="Kenya Rapid MWA" ~"Water",
+                 Project=="KfW"   ~"Energy",
+                 Project=="Leave 2021"  ~"Leave",
+                 Project=="LMCP Phase 1 AFDB"   ~"Energy",
+                 Project=="MOU development Karibu Homes Ltd and MAVWASCO"   ~"Water",
+                 Project=="MWA 2"  ~"Water",
+                 Project=="Nakuru Energy Plan"  ~"Energy",
+                 Project=="NCI Report Review"   ~"Climate Change",
+                 Project=="Power to X"   ~"Energy",
+                 Project=="PPA Watch"   ~"Energy",
+                 Project=="RE4R Implementation"   ~"Energy",
+                 Project=="RESI"   ~"Energy",
+                 Project=="Retreat"  ~"Admin",
+                 Project=="Roadmap to E-mobility" ~"Climate Change",
+                 Project=="TASC Improved cookstove and clean water POA"   ~"Energy",
+                 Project=="UNICEF KOICA"     ~"Water",
+                 Project=="US NIH" ~"Energy",
+                 Project=="WB Ethiopia"    ~"Energy",
+                 Project=="WRI spatial data collection" ~"Energy",
+                 ),
+   Lines=case_when(Sector=="Energy"~"Consulting",
+                 Sector=="Climate Change"~"Consulting",
+                 Sector=="Water" ~"Consulting",
+                 Sector=="Admin"   ~"Admin",
+                 Sector=="Business Development"   ~"Business Development",
+                 Sector=="Leave"    ~"Leave"
+                 ),
+  Rate=as.numeric(Rate),
+  Cost=round(Rate*Hrs/8,0),
+  Date=dmy(Date),
+  Quarter=quarter(Date)
+  )
+```
+
+#key lines data for plotting
+```{r}
+lines_year<-df %>% 
+  group_by(Lines) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) %>%
+  mutate(
+     hrs_perc=round(total_hrs/sum(total_hrs)*100,0)
+  )
+
+
+lines_year[2,1]<-"BD"
+lines_year
+```
+
+
+```{r}
+f1<-"Comic Sans MS"
+f2<-"Palentino Linotype"
+```
+
+
+
+#plotting lines per year
+```{r}
+# Compute percentages
+lines_year$fraction <- lines_year$hrs_perc / sum(lines_year$hrs_perc)
+
+# Compute the cumulative percentages (top of each rectangle)
+lines_year$ymax <- cumsum(lines_year$fraction)
+
+# Compute the bottom of each rectangle
+lines_year$ymin <- c(0, head(lines_year$ymax, n=-1))
+
+# Compute label position
+lines_year$labelPosition <- (lines_year$ymax + lines_year$ymin) / 2
+
+# Compute a good label
+lines_year$label <- paste0(lines_year$Lines, "\n", lines_year$hrs_perc,"%")
+
+##ggplot
+p1<-ggplot(lines_year, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Lines)) +
+  geom_rect() +
+  geom_text( x=4.6, aes(y=labelPosition, label=label,color=Lines), size=3.2,family=f1) +
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107")) +
+  scale_color_manual(values = c("#008253","#393d83","#fd7e14","#ffc107")) +
+  coord_polar(theta="y") +
+  xlim(c(1, 4)) +
+  theme_void() +
+  theme(legend.position = "none")
+ggsave("./www/lines_year.png",
+       dpi = 320,
+      width = 10,
+      height = 7)
+p1
+```
+
+#sector lines data for plotting
+```{r}
+sector_year<-df %>% 
+  group_by(Sector) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) %>%
+  mutate(
+     hrs_perc=round(total_hrs/sum(total_hrs)*100,1)
+  )
+sector_year
+
+sct<-c("Climate Change","Energy","Water")
+
+eed_sct<-sector_year %>% filter(Sector %in% sct)
+
+eed_sct
+```
+
+#stacked plot for sector lines
+```{r}
+p2<-ggplot(eed_sct,aes(x="",y=hrs_perc,fill=Sector))+
+  geom_bar(position = "stack",stat = "identity",width = 0.2)+
+  geom_text(aes(label=paste0(Sector,"\n",hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=2.5)+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14"))+
+  # geom_curve(aes(x = 40, y = 3, xend = 0, yend = -6),
+  #            size = 0.5, color = "black",curvature = -0.2,
+  #            arrow = arrow(length = unit(0.02, "npc")))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_blank(),
+    legend.position = "None",
+    legend.title = element_blank()
+  )
+p2
+  
+```
+
+#layout
+```{r}
+p3<-(p1|p2)
+ggsave("./www/lines_output2.png",plot = p3, dpi = 320, height = 8, width = 11)
+```
+
+#yearly project costs
+```{r}
+project_year<-df %>% 
+  group_by(Project) %>%
+  summarise(total_cost=round(sum(Cost),0)) %>%
+  arrange(desc(total_cost)) 
+
+#selecting rows with projects only
+project_year<-project_year[-c(1,4,7,9,12:16,19,20,24,30,43,49,50,53),]
+project_year
+```
+
+#yearly project cost per sector
+```{r}
+sct_yr<-df %>% 
+  group_by(Project,Sector) %>%
+  summarise(total_cost=round(sum(Cost),0),
+            total_hrs=round(sum(Hrs),0)) %>%
+  arrange(desc(total_cost)) 
+sct_yr<-sct_yr[-c(1,4,7,9,12:16,19,20,24,30,43,49,50,53),]
+sct_energy<-sct_yr %>% filter(Sector=="Energy")
+sct_water<-sct_yr %>% filter(Sector=="Water")
+sct_climate<-sct_yr %>% filter(Sector=="Climate Change") %>% select(-Sector)
+sct_yr
+
+```
+
+#table per sector- water
+```{r}
+write.csv(sct_water,"./www/sct_water2.csv")
+sct_water2<-read_csv("./www/sct_water2.csv")
+sct_watertb<-sct_water2 %>%
+  rename(
+    'Total cost'=total_cost,
+    'Total Hours'=total_hrs
+  ) %>%
+  gt() %>%
+  fmt_currency(
+    columns = 'Total cost',
+    currency = "USD",
+    sep_mark = ",",
+    decimals = NULL
+  ) %>%
+  gt_color_rows('Total cost':'Total Hours',palette = "ggsci::blue_material" ) %>%
+
+   #rename columns
+  cols_label(
+    'Total cost'="Total cost ($)"
+  ) %>%
+  gt_theme_guardian()
+
+sct_watertb %>% gtsave("./www/sct_water2.png")
+```
+
+
+#table per sector- climate
+```{r}
+write.csv(sct_climate,"./www/sct_climate2.csv")
+sct_climate2<-read_csv("./www/sct_climate2.csv")
+sct_climatetb<-sct_climate2 %>%
+  rename(
+    'Total cost'=total_cost,
+    'Total Hours'=total_hrs
+  ) %>%
+  gt() %>%
+  fmt_currency(
+    columns = 'Total cost',
+    currency = "USD",
+    sep_mark = ",",
+    decimals = NULL
+  ) %>%
+  gt_color_rows('Total cost':'Total Hours',palette = "ggsci::blue_material" ) %>%
+
+   #rename columns
+  cols_label(
+    'Total cost'="Total cost ($)"
+  ) %>%
+  # tab_header(
+  #   title = "CLIMATE PROJECTS",
+  #   #use markdown syntax with md()
+  #   subtitle = md("**Summary**")
+  # ) %>% 
+  #  #customizing the title
+  # tab_style(
+  #   #select object to modify
+  #   locations = cells_title(groups ="title"),
+  #   #specifying text style
+  #   style = list(
+  #     cell_text(
+  #       font=f2,
+  #       size = "xx-large",
+  #       color = "#393d83",
+  #       align = "center"
+  #     )
+  #   )
+  # ) %>% 
+  #  tab_style(
+  #   #select object to modify
+  #   locations = cells_title(groups ="subtitle"),
+  #   #specifying text style
+  #   style = list(
+  #     cell_text(
+  #       font=f2,
+  #       size = "x-large",
+  #       color = "#393d83",
+  #       align = "center"
+  #     )
+  #   )
+  # ) %>% 
+  gt_theme_guardian()
+
+sct_climatetb %>% gtsave("./www/sct_climate2.png")
+```
+
+#table per sector- energy
+```{r}
+write.csv(sct_energy,"./www/sct_energy2.csv")
+sct_energy2<-read_csv("./www/sct_energy2.csv")
+sct_energytb<-sct_energy2 %>%
+  rename(
+    'Total cost'=total_cost,
+    'Total Hours'=total_hrs
+  ) %>%
+  gt() %>%
+   fmt_currency(
+    columns = 'Total cost',
+    currency = "USD",
+    sep_mark = ",",
+    decimals = NULL
+  ) %>%
+  gt_color_rows('Total cost':'Total Hours',palette = "ggsci::blue_material" ) %>%
+
+   #rename columns
+  cols_label(
+    'Total cost'="Total cost ($)"
+  ) %>%
+  tab_style(
+    #select object to modify
+    locations = cells_title(groups ="cell"),
+    #specifying text style
+    style = list(
+      cell_text(
+        size = "xx-large"
+      )
+    )
+  ) %>%
+  # tab_header(
+  #   title = "ENERGY PROJECTS",
+  #   #use markdown syntax with md()
+  #   subtitle = md("**Summary**")
+  # ) %>% 
+  #  #customizing the title
+  # tab_style(
+  #   #select object to modify
+  #   locations = cells_title(groups ="title"),
+  #   #specifying text style
+  #   style = list(
+  #     cell_text(
+  #       font=f2,
+  #       size = "xx-large",
+  #       color = "#393d83",
+  #       align = "center"
+  #     )
+  #   )
+  # ) %>% 
+  #  tab_style(
+  #   #select object to modify
+  #   locations = cells_title(groups ="subtitle"),
+  #   #specifying text style
+  #   style = list(
+  #     cell_text(
+  #       font=f2,
+  #       size = "x-large",
+  #       color = "#393d83",
+  #       align = "center"
+  #     )
+  #   )
+  # ) %>% 
+  gt_theme_guardian()
+
+sct_energytb
+sct_energytb %>% gtsave("./www/sct_energy2.png")
+```
+
+#saving plot
+```{r}
+
+```
+
+#team yearly metrics
+```{r}
+team_lines<-df %>% 
+  group_by(Team,Lines) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) %>%
+  mutate(
+     hrs_perc=round(total_hrs/sum(total_hrs)*100,1)
+  )
+team_lines
+
+```
+
+#plotting team yearly metrics
+```{r}
+ggplot(team_lines,aes(x=Team,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(y="Percentage")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+#ggsave("./www/team_lines2.png")
+```
+
+#personal yearly metrics
+```{r}
+personal_lines<-df %>% 
+  group_by(Name,Lines) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) %>%
+  mutate(
+     hrs_perc=round(total_hrs/sum(total_hrs)*100,1)
+  )
+
+
+lft<-c("Kamau Clara","Musivo Winnie","Odero Faith","Tanui Cornelius")
+personal_lines<-personal_lines %>% filter(!Name %in% lft)
+personal_lines2<-personal_lines %>% 
+  mutate(
+    Team=case_when(Name=="Barasa Murefu"~"Team Delta",
+                 Name=="Kinuthia Brian"~"Team Phi",
+                 Name=="Shikorire Tom"~"Team Phi",
+                 Name=="Anyango Ruth"~"Team Phi",
+                 Name=="Mwangi Brian"~"Team Phi",
+                 Name=="Mbutura Alois"~"Team Kappa",
+                 Name=="Kitetu Martin"~"Team Kappa",
+                 Name=="Okode Adams"~"Team Kappa",
+                 Name=="Irungu Joyce"~"Team Chi",
+                 Name=="Odhiambo Elmah"~"Team Chi",
+                 Name=="Samo June"~"Team Chi",
+                 Name=="Cherunya Pauline"~"Team Chi",
+                 Name=="Gichuhi Ruth"~"Team Gamma",
+                 Name=="Muchiri James"~"Team Gamma",
+                 Name=="Maina Morris"~"Team Gamma",
+                 Name=="Muthuri Cynthia"~"Team Gamma"
+                 )
+  ) %>% 
+  select(-c(3,4))
+personal_lines2
+personal_lines3<-personal_lines2 %>% spread(Lines,hrs_perc) %>% select(-Team)
+
+write.csv(personal_lines3,"./www/lines_table.csv",row.names = FALSE)
+personal_lines4<-read_csv("./www/lines_table.csv")
+```
+
+#general table for time spent
+```{r}
+pl4tb<-personal_lines4 %>%
+  gt() %>%
+  fmt_percent(
+    columns = 'Admin':'Leave',
+    scale_values = FALSE,
+    decimals = 1
+  )%>%
+  gt_color_rows('Admin':'Leave',palette = "ggsci::blue_material" ) %>%
+  
+  gt_theme_guardian()
+
+pl4tb %>% gtsave("./www/lines_table2.png")
+```
+
+
+#plot personal_lines team phi
+```{r}
+personal_lines2 %>% 
+  filter(Team=="Team Phi")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Phi",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tphi_yearly2.png")
+```
+
+#plot personal_lines team delta
+```{r}
+personal_lines2 %>% 
+  filter(Team=="Team Delta")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Delta",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tdelta_yearly2.png")
+
+```
+
+#plot personal_lines team chi
+```{r}
+personal_lines2 %>% 
+  filter(Team=="Team Chi")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Chi",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tchi_yearly2.png")
+```
+
+
+#plot personal_lines team Gamma
+```{r}
+personal_lines2 %>% 
+  filter(Team=="Team Gamma")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Gamma",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tgamma_yearly2.png")
+```
+
+#plot personal_lines team kappa
+```{r}
+personal_lines2 %>% 
+  filter(Team=="Team Kappa")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Kappa",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position ="bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tkappa_yearly2.png")
+```
+
+#time spent on each project per team
+```{r}
+tproject<- df %>% 
+  filter(Lines=="Consulting") %>%
+  group_by(Project,Team) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) 
+  
+tproject
+```
+#team gamma
+```{r}
+tproject %>% 
+  filter(Team=="Team Gamma") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#008253")+
+  labs(title ="Team Gamma",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0,vjust=0.5,family=f1,size=2.8)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tproject_gamma.png")
+```
+
+#team phi
+```{r}
+tproject %>% 
+  filter(Team=="Team Phi") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#393d83")+
+  labs(title ="Team Phi",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0,vjust=0.5,family=f1,size=2.6)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tproject_phi.png")
+```
+
+#team chi
+```{r}
+tproject %>% 
+  filter(Team=="Team Chi") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#fd7e14")+
+  labs(title ="Team Chi",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0.6,vjust=0.5,family=f1,size=2.4)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tproject_chi.png")
+```
+
+#team kappa
+```{r}
+tproject %>% 
+  filter(Team=="Team Kappa") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#ffc107")+
+  labs(title ="Team Kappa",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0.6,vjust=0.5,family=f1,size=2.4)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tproject_kappa.png")
+```
+
+#Team Delta
+```{r}
+tproject %>% 
+  filter(Team=="Team Delta") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#2596be")+
+  labs(title ="Team Delta",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0,vjust=0.5,family=f1,size=2.4)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tproject_delta.png")
+```
+
+#time series analysis by lines
+```{r}
+library(zoo)
+p_pattern<-df %>% 
+  mutate(
+    month=as.yearmon(Date),
+  ) %>%
+  group_by(Lines,month) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) 
+ 
+
+p_pattern$month<-as.Date.yearmon(p_pattern$month)
+p_pattern
+```
+
+#time series analysis by sector
+```{r}
+s_pattern<-df %>% 
+  filter(Lines=="Consulting") %>%
+  mutate(
+    month=as.yearmon(Date),
+  ) %>%
+  group_by(Sector,month) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) 
+ 
+
+s_pattern$month<-as.Date.yearmon(s_pattern$month)
+s_pattern
+```
+
+#sector time series
+```{r}
+s_pattern %>% 
+ggplot(aes(x=month, y=total_hrs))+
+  geom_line(aes(color=Sector),size=1)+
+  geom_point(aes(color=Sector),size=1.6)+
+  scale_color_manual(values = c("#008253","#393d83","#fd7e14"))+
+ # scale_x_yearmon(n=14)+
+  scale_x_date(breaks = "1 month",date_labels="%b")+
+  labs(
+    y="Total hours",x=""
+  )+
+  geom_text(x =as.Date("2021-12-01"), y=600,label="Energy",
+            color = "#393d83",family = f1,size = 2.2,face = "bold")+
+  geom_text(x =as.Date("2021-12-01"), y=250,label="Climate change",
+            color = "#008253",family = f1,size = 2.2,face = "bold")+
+   geom_text(x =as.Date("2021-12-01"), y=150,label="Water",
+            color = "#fd7e14",family = f1,size = 2.2,face = "bold")+
+  ubuntu_theme()+
+  theme(
+    panel.grid.major.y = element_line(color = "grey78"),
+    panel.grid.major.x = element_line(color = "grey78"),
+    axis.text.x = element_text(angle = 70),
+    axis.line = element_line(color = "white"),
+    legend.position = "None"
+  )
+ggsave("./www/sector_series.png")
+```
+
+#plot
+```{r}
+p_pattern %>% 
+ggplot(aes(x=month, y=total_hrs))+
+  geom_line(aes(color=Lines),size=1)+
+  geom_point(aes(color=Lines),size=1.6)+
+  scale_color_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+ # scale_x_yearmon(n=14)+
+  scale_x_date(breaks = "1 month",date_labels="%b")+
+  labs(
+    y="Total hours",x=""
+  )+
+   geom_text(x =as.Date("2021-12-01"), y=1200,label="Consulting",
+            color = "#fd7e14",family = f1,size = 3,face = "bold")+
+  geom_text(x =as.Date("2021-12-01"), y=500,label="Leave",
+            color = "#ffc107",family = f1,size = 3,face = "bold")+
+  geom_text(x =as.Date("2021-12-01"), y=150,label="BD",
+            color = "#393d83",family = f1,size = 3,face = "bold")+
+   geom_text(x =as.Date("2021-12-01"), y=300,label="Admin",
+            color = "#008253",family = f1,size = 3,face = "bold")+
+  ubuntu_theme()+
+  theme(
+    panel.grid.major.y = element_line(color = "grey78"),
+    panel.grid.major.x = element_line(color = "grey78"),
+    axis.text.x = element_text(angle = 70),
+    axis.line = element_line(color = "white"),
+    legend.position = "None"
+  )
+ggsave("./www/lines_series.png")
+```
+
+   #######Quarter 4 analysis############
+```{r}
+df_q4<-df %>% 
+  filter(Quarter=="4")
+  #select(-month2)
+df_q4
+```
+
+#quarter 4 projects table
+```{r}
+sct_q4<-df_q4 %>% 
+  filter(Lines=="Consulting") %>%
+  group_by(Project,Sector) %>%
+  summarise(total_cost=round(sum(Cost),0),
+            total_hrs=round(sum(Hrs),0)) %>%
+  arrange(desc(total_cost)) 
+sct_q4
+write.csv(sct_q4,"./www/q4_table2.csv",row.names = FALSE)
+sct_q4b<-read_csv("./www/q4_table2.csv")
+```
+
+#table
+```{r}
+
+q4tb<-sct_q4b %>%
+  gt() %>%
+  gt_color_rows('total_cost':'total_hrs',palette = "ggsci::blue_material" ) %>%
+  fmt_currency(
+    columns = total_cost,
+    currency = "USD",
+    sep_mark = ",",
+    decimals = NULL
+  ) %>%
+  cols_label(
+    total_cost='Total cost ($)',
+    total_hrs='Total hours'
+  ) %>%
+   tab_style(
+    #select object to modify
+    locations = cells_title(groups ="cell"),
+    #specifying text style
+    style = list(
+      cell_text(
+        size = "xx-large"
+      )
+    )
+  ) %>%
+  gt_theme_guardian()
+#q4tb
+q4tb %>% gtsave("./www/q4tb2.png")
+```
+
+#q4 lines
+```{r}
+lines_q4<-df_q4 %>% 
+  group_by(Lines) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) %>%
+  mutate(
+     hrs_perc=round(total_hrs/sum(total_hrs)*100,0)
+  )
+
+
+lines_q4[2,1]<-"BD"
+lines_q4
+```
+
+```{r}
+# Compute percentages
+lines_q4$fraction <- lines_q4$hrs_perc / sum(lines_q4$hrs_perc)
+
+# Compute the cumulative percentages (top of each rectangle)
+lines_q4$ymax <- cumsum(lines_q4$fraction)
+
+# Compute the bottom of each rectangle
+lines_q4$ymin <- c(0, head(lines_q4$ymax, n=-1))
+
+# Compute label position
+lines_q4$labelPosition <- (lines_q4$ymax + lines_q4$ymin) / 2
+
+# Compute a good label
+lines_q4$label <- paste0(lines_q4$Lines, "\n", lines_q4$hrs_perc,"%")
+
+##ggplot
+p3<-ggplot(lines_q4, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Lines)) +
+  geom_rect() +
+  geom_text( x=4.6, aes(y=labelPosition, label=label,color=Lines), size=3.2,family=f1) +
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107")) +
+  scale_color_manual(values = c("#008253","#393d83","#fd7e14","#ffc107")) +
+  coord_polar(theta="y") +
+  xlim(c(1, 4)) +
+  theme_void() +
+  theme(legend.position = "none")
+ggsave("./www/lines_q4.png",
+       dpi = 320,
+      width = 10,
+      height = 7)
+```
+
+
+```{r}
+sector_q4<-df_q4 %>% 
+  #filter(Lines=="Consulting")%>%
+  group_by(Sector) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) %>%
+  mutate(
+     hrs_perc=round(total_hrs/sum(total_hrs)*100,1)
+  )
+
+sct<-c("Climate Change","Energy","Water")
+
+sector_q4<-sector_q4 %>% filter(Sector %in% sct)
+sector_q4
+
+```
+```{r}
+p4<-ggplot(sector_q4,aes(x="",y=hrs_perc,fill=Sector))+
+  geom_bar(position = "stack",stat = "identity",width = 0.2)+
+  geom_text(aes(label=paste0(Sector,"\n",hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=2.5)+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14"))+
+  # geom_curve(aes(x = 40, y = 3, xend = 0, yend = -6),
+  #            size = 0.5, color = "black",curvature = -0.2,
+  #            arrow = arrow(length = unit(0.02, "npc")))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    axis.title = element_blank(),
+    axis.text.x = element_blank(),
+    legend.position = "None",
+    legend.title = element_blank()
+  )
+p4
+```
+
+```{r}
+p6<-(p3|p4)
+ggsave("./www/lines_q4.png",plot = p6, dpi = 320, height = 8, width = 11)
+```
+
+#time spent per line for each team q4
+```{r}
+team_linesq4<-df_q4 %>% 
+  group_by(Team,Lines) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) %>%
+  mutate(
+     hrs_perc=round(total_hrs/sum(total_hrs)*100,1)
+  )
+team_linesq4
+```
+```{r}
+ggplot(team_linesq4,aes(x=Team,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(y="Percentage")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/team_linesq4.png")
+```
+
+#time spent for each line individually
+```{r}
+personal_linesq4<-df_q4 %>% 
+  group_by(Name,Lines) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) %>%
+  mutate(
+     hrs_perc=round(total_hrs/sum(total_hrs)*100,1)
+  ) %>% 
+  select(-c(3,4))
+
+personal_linesq4a<-personal_linesq4 %>% spread(Lines,hrs_perc)
+
+
+write.csv(personal_linesq4a,"./www/lines_tableq4.csv",row.names = FALSE)
+personal_linesq4b<-read_csv("./www/lines_tableq4.csv")
+```
+
+#plotting table
+```{r}
+plq4tb<-personal_linesq4b %>%
+  gt() %>%
+   fmt_percent(
+    columns = 'Admin':'Leave',
+    scale_values = FALSE,
+    decimals = 1
+  )%>%
+  gt_color_rows('Admin':'Leave',palette = "ggsci::blue_material" ) %>%
+  
+  gt_theme_guardian()
+
+plq4tb %>% gtsave("./www/lines_tableq4b.png")
+```
+#time per person q4
+```{r}
+ psn_q4<-personal_linesq4 %>% mutate(
+    Team=case_when(Name=="Barasa Murefu"~"Team Delta",
+                 Name=="Kinuthia Brian"~"Team Phi",
+                 Name=="Shikorire Tom"~"Team Phi",
+                 Name=="Anyango Ruth"~"Team Phi",
+                 Name=="Mwangi Brian"~"Team Phi",
+                 Name=="Mbutura Alois"~"Team Kappa",
+                 Name=="Kitetu Martin"~"Team Kappa",
+                 Name=="Okode Adams"~"Team Kappa",
+                 Name=="Irungu Joyce"~"Team Chi",
+                 Name=="Odhiambo Elmah"~"Team Chi",
+                 Name=="Samo June"~"Team Chi",
+                 Name=="Cherunya Pauline"~"Team Chi",
+                 Name=="Gichuhi Ruth"~"Team Gamma",
+                 Name=="Muchiri James"~"Team Gamma",
+                 Name=="Maina Morris"~"Team Gamma",
+                 Name=="Muthuri Cynthia"~"Team Gamma"
+                 )
+  )
+psn_q4
+```
+```{r}
+psn_q4 %>% 
+  filter(Team=="Team Phi")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Phi",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tphi_q4.png")
+```
+
+```{r}
+psn_q4 %>% 
+  filter(Team=="Team Chi")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Chi",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tchi_q4.png")
+```
+
+```{r}
+psn_q4 %>% 
+  filter(Team=="Team Gamma")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Gamma",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tgamma_q4.png")
+```
+
+```{r}
+psn_q4 %>% 
+  filter(Team=="Team Delta")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Delta",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tdelta_q4.png")
+```
+
+```{r}
+psn_q4 %>% 
+  filter(Team=="Team Kappa")%>%
+  ggplot(aes(x=Name,y=hrs_perc,fill=Lines))+
+  geom_bar(position = "stack",stat = "identity")+
+  geom_text(aes(label=paste0(hrs_perc,"%")),position = position_stack(vjust = 0.5),color="white",family=f1,size=3)+
+  labs(title ="Team Kappa",y="Percentage",x="")+
+  guides(fill=guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c("#008253","#393d83","#fd7e14","#ffc107"))+
+  coord_flip()+
+  ubuntu_theme()+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+ggsave("./www/tkappa_q4.png")
+```
+
+#time spent on each project
+```{r}
+tprojectq4<- df_q4 %>% 
+  filter(Lines=="Consulting") %>%
+  group_by(Project,Team) %>%
+  summarise(total_hrs=round(sum(Hrs),0),
+            total_cost=sum(Cost)
+           ) 
+  
+tprojectq4
+```
+```{r}
+tprojectq4 %>% 
+  filter(Team=="Team Gamma") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#008253")+
+  labs(title ="Team Gamma",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0,vjust=0.5,family=f1,size=2.8)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tprojectq4_gamma.png")
+```
+
+
+```{r}
+tprojectq4 %>% 
+  filter(Team=="Team Phi") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#393d83")+
+  labs(title ="Team Phi",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0,vjust=0.5,family=f1,size=2.6)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tprojectq4_phi.png")
+```
+
+```{r}
+tprojectq4 %>% 
+  filter(Team=="Team Chi") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#fd7e14")+
+  labs(title ="Team Chi",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0.6,vjust=0.5,family=f1,size=2.4)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tprojectq4_chi.png")
+```
+
+```{r}
+tprojectq4 %>% 
+  filter(Team=="Team Kappa") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#ffc107")+
+  labs(title ="Team Kappa",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0.6,vjust=0.5,family=f1,size=2.4)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tprojectq4_kappa.png")
+```
+
+```{r}
+tprojectq4 %>% 
+  filter(Team=="Team Delta") %>%
+  ggplot(aes(x=reorder(Project,total_hrs),y=total_hrs))+
+  geom_col(fill="#2596be")+
+  labs(title ="Team Delta",y="Total hours",x="")+
+  geom_text(aes(label=paste0(total_hrs)),position=position_dodge(width=1.2),color="black",
+            hjust=0,vjust=0.5,family=f1,size=2.4)+
+  coord_flip()+
+  ubuntu_theme()
+ggsave("./www/tprojectq4_delta.png")
+```
+
+
+
