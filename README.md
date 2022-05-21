@@ -1,2 +1,2 @@
 # ReportAnalysis
-This is analysis of EED yearly report
+This is analysis of a company yearly report
